@@ -25,6 +25,7 @@ void *encargado(void *arg);
 void *telefono(void *arg);
 void *cocinero(void *arg);
 void *delivery(void *arg);
+//AGREGAR UN MUTEX POR HILO
 pthread_mutex_t mutex= PTHREAD_MUTEX_INITIALIZER;
 
 int main(int argc, char const *argv[])
