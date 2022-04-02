@@ -15,6 +15,8 @@ Se debe sincronizar la interacción entre los hilos utilizando MUTEXES según la
 #include <time.h>
 #include <semaphore.h>
 
+
+
 typedef struct pedido
 {
     int numero;
@@ -37,6 +39,62 @@ sem_t sem_cocineros;
 sem_t sem_delivery;
 
 // Funciones para los hilos.
+void *generarPedido(void *arg);
+
+void *cobrarPedido(void *arg);
+
+void *prepararPedido(void *arg);
+
+void *llevarPedido(void *arg);
+
+int main(int argc, char *argv[])
+{
+
+    int cantidad_cocineros = 3;
+    int cantidad_delivery = 3;
+
+    pthread_t hilo_telefono;
+    pthread_t hilo_caja;
+    pthread_t hilo_cocineros[cantidad_cocineros];
+    pthread_t hilo_delivery[cantidad_delivery];
+
+    sem_init(&sem_pedidos, 0, 0);
+    sem_init(&sem_caja, 0, 0);
+    sem_init(&sem_cocineros, 0, cantidad_cocineros);
+    sem_init(&sem_delivery, 0, cantidad_delivery);
+    
+
+    // Creamos hilos
+    pthread_create(&hilo_telefono, NULL, generarPedido, NULL);
+    pthread_create(&hilo_caja, NULL, cobrarPedido, NULL);
+
+    for (int i = 0; i < cantidad_cocineros; i++)
+    {
+        pthread_create(&hilo_cocineros[i], NULL, prepararPedido, NULL);
+    }
+
+    for (int i = 0; i < cantidad_delivery; i++)
+    {
+        pthread_create(&hilo_delivery[i], NULL, llevarPedido, NULL);
+    }
+
+    // Esperamos a que finalicen la ejecucion de los hilos
+    pthread_join(hilo_telefono, NULL);
+    pthread_join(hilo_caja, NULL);
+
+    for (int i = 0; i < 3; i++)
+    {
+        pthread_join(hilo_cocineros[i], NULL);
+    }
+
+    for (int i = 0; i < 3; i++)
+    {
+        pthread_join(hilo_delivery[i], NULL);
+    }
+
+    return 0;
+}
+
 void *generarPedido(void *arg)
 {
 
@@ -108,46 +166,4 @@ void *llevarPedido(void *arg)
     }
 
     return NULL;
-}
-
-int main(int argc, char *argv[])
-{
-
-    pthread_t hilo_telefono;
-    pthread_t hilo_caja;
-    pthread_t hilo_cocineros[3];
-    pthread_t hilo_delivery[3];
-
-    sem_init(&sem_pedidos, 0, 0);
-    sem_init(&sem_caja, 0, 0);
-
-    // Creamos hilos
-    pthread_create(&hilo_telefono, NULL, generarPedido, NULL);
-    pthread_create(&hilo_caja, NULL, cobrarPedido, NULL);
-
-    for (int i = 0; i < 3; i++)
-    {
-        pthread_create(&hilo_cocineros[i], NULL, prepararPedido, NULL);
-    }
-
-    for (int i = 0; i < 3; i++)
-    {
-        pthread_create(&hilo_delivery[i], NULL, llevarPedido, NULL);
-    }
-
-    // Esperamos a que finalicen la ejecucion de los hilos
-    pthread_join(hilo_telefono, NULL);
-    pthread_join(hilo_caja, NULL);
-
-    for (int i = 0; i < 3; i++)
-    {
-        pthread_join(hilo_cocineros[i], NULL);
-    }
-
-    for (int i = 0; i < 3; i++)
-    {
-        pthread_join(hilo_delivery[i], NULL);
-    }
-
-    return 0;
 }
