@@ -80,6 +80,9 @@ void *telefono(void *arg);
 
 int main(int argc, char *argv[])
 {
+
+//intento dinamico WARNING: tira segmentation fault
+/*
     pthread_t cocinero[cant_cocineros], delivery[cant_delivery], encargado[cant_encargados], telefono[cant_telefonos];
     cocinero_t cocinero_[cant_cocineros];
     delivery_t delivery_[cant_delivery];
@@ -148,8 +151,12 @@ int main(int argc, char *argv[])
         pthread_join(telefono[i], NULL);
     }
 
+*/
 
-/*
+//hardcodeado
+
+    pthread_t cocinero1, cocinero2, delivery1, delivery2, encargado1, encargado2, telefono1, telefono2;
+
     cocinero_t cocinero_1 = {1, 1, 1};
     cocinero_t cocinero_2 = {2, 1, 1};
     delivery_t delivery_1 = {1, 1, 1};
@@ -176,7 +183,7 @@ int main(int argc, char *argv[])
     pthread_join(encargado2, NULL);
     pthread_join(telefono1, NULL);
     pthread_join(telefono2, NULL);
-*/
+
     return 0;
 }
 
