@@ -5,8 +5,8 @@ telefono que genera los pedidos de los clientes,
 cocinero que prepara la comida,
 delivery que lleva los pedidos a los clientes,
 El encargado atiende los pedidos que llegan por telefono separados un tiempo aleatorio. El cocinero prepara el pedido, demorando un tiempo diferente según la comida solicitada; solo puede preparar un pedido por vez. El delivery entrega los pedidos a los clientes (de a uno por vez), demorando un tiempo diferente (aleatorio) según la distancia, y al regresar entrega el monto del pedido al encargado.
-Se debe sincronizar la interacción entre los hilos utilizando MUTEXES según la necesidad (revisar Split Mutex).
- */
+Se debe sincronizar la interacción entre los hilos utilizando MUTEX según la necesidad (revisar Split Mutex).
+*/
 
 #include <stdio.h>
 #include <unistd.h>
@@ -15,8 +15,6 @@ Se debe sincronizar la interacción entre los hilos utilizando MUTEXES según la
 #include <time.h>
 #include <semaphore.h>
 
-
-
 typedef struct pedido
 {
     int numero;
@@ -24,146 +22,168 @@ typedef struct pedido
     int tiempo_delivery;
 } pedido_t;
 
-pedido_t pedido_generado;
+typedef struct cocinero
+{
+    int numero;
+    int tiempo_preparacion;
+    int tiempo_delivery;
+} cocinero_t;
 
-int cantidad_pedidos = 0;
+typedef struct delivery
+{
+    int numero;
+    int tiempo_preparacion;
+    int tiempo_delivery;
+} delivery_t;
 
-// Para evitar carreras, usamos mutexes.
-pthread_mutex_t mutex_pedidos = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t mutex_caja = PTHREAD_MUTEX_INITIALIZER;
+typedef struct encargado
+{
+    int numero;
+    int tiempo_preparacion;
+    int tiempo_delivery;
+} encargado_t;
 
-// Los hilos deben esperar a que haya un pedido para empezar a hacer su trabajo, por lo que usamos semaforos
-sem_t sem_pedidos;
-sem_t sem_caja;
-sem_t sem_cocineros;
-sem_t sem_delivery;
+typedef struct telefono
+{
+    int numero;
+    int tiempo_preparacion;
+    int tiempo_delivery;
+} telefono_t;
 
-// Funciones para los hilos.
-void *generarPedido(void *arg);
+pthread_mutex_t mutex_cocinero = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_delivery = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_encargado = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_telefono = PTHREAD_MUTEX_INITIALIZER;
 
-void *cobrarPedido(void *arg);
+pthread_cond_t cond_cocinero = PTHREAD_COND_INITIALIZER;
+pthread_cond_t cond_delivery = PTHREAD_COND_INITIALIZER;
+pthread_cond_t cond_encargado = PTHREAD_COND_INITIALIZER;
+pthread_cond_t cond_telefono = PTHREAD_COND_INITIALIZER;
 
-void *prepararPedido(void *arg);
+int pedidos_totales = 0;
+int pedidos_preparados = 0;
+int pedidos_entregados = 0;
+int pedidos_cobrados = 0;
 
-void *llevarPedido(void *arg);
+void *cocinero(void *arg);
+
+void *delivery(void *arg);
+
+void *encargado(void *arg);
+
+void *telefono(void *arg);
 
 int main(int argc, char *argv[])
 {
+    pthread_t cocinero1, cocinero2, delivery1, delivery2, encargado1, encargado2, telefono1, telefono2;
+    cocinero_t cocinero_1 = {1, 1, 1};
+    cocinero_t cocinero_2 = {2, 1, 1};
+    delivery_t delivery_1 = {1, 1, 1};
+    delivery_t delivery_2 = {2, 1, 1};
+    encargado_t encargado_1 = {1, 1, 1};
+    encargado_t encargado_2 = {2, 1, 1};
+    telefono_t telefono_1 = {1, 1, 1};
+    telefono_t telefono_2 = {2, 1, 1};
 
-    int cantidad_cocineros = 3;
-    int cantidad_delivery = 3;
+    pthread_create(&cocinero1, NULL, cocinero, &cocinero_1);
+    pthread_create(&cocinero2, NULL, cocinero, &cocinero_2);
+    pthread_create(&delivery1, NULL, delivery, &delivery_1);
+    pthread_create(&delivery2, NULL, delivery, &delivery_2);
+    pthread_create(&encargado1, NULL, encargado, &encargado_1);
+    pthread_create(&encargado2, NULL, encargado, &encargado_2);
+    pthread_create(&telefono1, NULL, telefono, &telefono_1);
+    pthread_create(&telefono2, NULL, telefono, &telefono_2);
 
-    pthread_t hilo_telefono;
-    pthread_t hilo_caja;
-    pthread_t hilo_cocineros[cantidad_cocineros];
-    pthread_t hilo_delivery[cantidad_delivery];
-
-    sem_init(&sem_pedidos, 0, 0);
-    sem_init(&sem_caja, 0, 0);
-    sem_init(&sem_cocineros, 0, cantidad_cocineros);
-    sem_init(&sem_delivery, 0, cantidad_delivery);
-    
-
-    // Creamos hilos
-    pthread_create(&hilo_telefono, NULL, generarPedido, NULL);
-    pthread_create(&hilo_caja, NULL, cobrarPedido, NULL);
-
-    for (int i = 0; i < cantidad_cocineros; i++)
-    {
-        pthread_create(&hilo_cocineros[i], NULL, prepararPedido, NULL);
-    }
-
-    for (int i = 0; i < cantidad_delivery; i++)
-    {
-        pthread_create(&hilo_delivery[i], NULL, llevarPedido, NULL);
-    }
-
-    // Esperamos a que finalicen la ejecucion de los hilos
-    pthread_join(hilo_telefono, NULL);
-    pthread_join(hilo_caja, NULL);
-
-    for (int i = 0; i < 3; i++)
-    {
-        pthread_join(hilo_cocineros[i], NULL);
-    }
-
-    for (int i = 0; i < 3; i++)
-    {
-        pthread_join(hilo_delivery[i], NULL);
-    }
+    pthread_join(cocinero1, NULL);
+    pthread_join(cocinero2, NULL);
+    pthread_join(delivery1, NULL);
+    pthread_join(delivery2, NULL);
+    pthread_join(encargado1, NULL);
+    pthread_join(encargado2, NULL);
+    pthread_join(telefono1, NULL);
+    pthread_join(telefono2, NULL);
 
     return 0;
 }
 
-void *generarPedido(void *arg)
+void *cocinero(void *arg)
 {
-
+    cocinero_t *cocinero = (cocinero_t *)arg;
     while (1)
     {
-        sleep((rand() % 3) + 2); // wait 2 to 5 seconds
-        cantidad_pedidos++;
-        pedido_generado.numero = cantidad_pedidos;
-        pedido_generado.tiempo_preparacion = (rand() % 10) + 2;
-        pedido_generado.tiempo_delivery = (rand() % 10) + 2;
-
-        printf("\nEl pedido numero %d con tiempo de preparacion %d y delivery %d ha sido generado", pedido_generado.numero, pedido_generado.tiempo_preparacion, pedido_generado.tiempo_delivery);
-
-        pthread_mutex_lock(&mutex_pedidos);
-        sem_post(&sem_pedidos);
-        pthread_mutex_unlock(&mutex_pedidos);
+        pthread_mutex_lock(&mutex_cocinero);
+        while (pedidos_preparados == pedidos_totales)
+        {
+            pthread_cond_wait(&cond_cocinero, &mutex_cocinero);
+        }
+        printf("Cocinero %d preparando pedido %d\n", cocinero->numero, pedidos_preparados + 1);
+        sleep(cocinero->tiempo_preparacion);
+        printf("Cocinero %d termino de preparar pedido %d\n", cocinero->numero, pedidos_preparados + 1);
+        pedidos_preparados++;
+        pthread_cond_signal(&cond_delivery);
+        pthread_mutex_unlock(&mutex_cocinero);
     }
-
-    return NULL;
+    pthread_exit(NULL);
 }
 
-void *cobrarPedido(void *arg)
+void *delivery(void *arg)
 {
-    printf("\nInicio de hilo de cobro");
+    delivery_t *delivery = (delivery_t *)arg;
     while (1)
     {
-        sem_wait(&sem_caja);
-        printf("\nCobrando pedido numero %d", pedido_generado.numero);
-        sleep((rand() % 5) + 2); // wait 2 to 5 seconds
-        pthread_mutex_unlock(&mutex_caja);
+        pthread_mutex_lock
+        (&mutex_delivery);
+        while (pedidos_entregados == pedidos_totales)
+        {
+            pthread_cond_wait(&cond_delivery, &mutex_delivery);
+        }
+        printf("Delivery %d entregando pedido %d\n", delivery->numero, pedidos_entregados + 1);
+        sleep(delivery->tiempo_delivery);
+        printf("Delivery %d termino de entregar pedido %d\n", delivery->numero, pedidos_entregados + 1);
+        pedidos_entregados++;
+        pthread_cond_signal(&cond_encargado);
+        pthread_mutex_unlock(&mutex_delivery);
     }
-
-    return NULL;
+    pthread_exit(NULL);
 }
 
-void *prepararPedido(void *arg)
+void *encargado(void *arg)
 {
-
-    printf("\nInicio de hilo de preparacion");
-
+    encargado_t *encargado = (encargado_t *)arg;
     while (1)
     {
-        sem_wait(&sem_pedidos);
-
-        printf("\nEl pedido numero %d ha ingresado a la cocina", pedido_generado.numero);
-        sleep(pedido_generado.tiempo_preparacion);
-        printf("\nEl pedido numero %d ha terminado de prepararse", pedido_generado.numero);
-
-        sem_post(&sem_caja);
+        pthread_mutex_lock(&mutex_encargado);
+        while (pedidos_cobrados == pedidos_totales)
+        {
+            pthread_cond_wait(&cond_encargado, &mutex_encargado);
+        }
+        printf("Encargado %d cobrando pedido %d\n", encargado->numero, pedidos_cobrados + 1);
+        sleep(encargado->tiempo_preparacion);
+        printf("Encargado %d termino de cobrar pedido %d\n", encargado->numero, pedidos_cobrados + 1);
+        pedidos_cobrados++;
+        pthread_cond_signal(&cond_telefono);
+        pthread_mutex_unlock(&mutex_encargado);
     }
-
-    return NULL;
+    pthread_exit(NULL);
 }
 
-void *llevarPedido(void *arg)
+void *telefono(void *arg)
 {
-
-    printf("\nInicio de hilo de delivery");
-
+    telefono_t *telefono = (telefono_t *)arg;
     while (1)
     {
-        sem_wait(&sem_caja);
-
-        printf("\nEl pedido numero %d ha ingresado al delivery", pedido_generado.numero);
-        sleep(pedido_generado.tiempo_delivery);
-        printf("\nEl pedido numero %d ha llegado a su destino", pedido_generado.numero);
-
-        pthread_mutex_unlock(&mutex_pedidos);
+        pthread_mutex_lock(&mutex_telefono);
+        while (pedidos_totales == 10)
+        {
+            pthread_cond_wait(&cond_telefono, &mutex_telefono);
+        }
+        sleep(rand() % 10);
+        printf("Telefono %d recibiendo pedido %d\n", telefono->numero, pedidos_totales + 1);
+        sleep(telefono->tiempo_preparacion);
+        printf("Telefono %d termino de recibir pedido %d\n", telefono->numero, pedidos_totales + 1);
+        pedidos_totales++;
+        pthread_cond_signal(&cond_cocinero);
+        pthread_mutex_unlock(&mutex_telefono);
     }
-
-    return NULL;
+    pthread_exit(NULL);
 }
