@@ -15,10 +15,11 @@ Se debe sincronizar la interacción entre los hilos utilizando MUTEX según la n
 #include <time.h>
 #include <semaphore.h>
 
-int cant_cocineros = 2;
-int cant_delivery = 2;
-int cant_telefonos = 2;
-int cant_encargados = 2;
+//cantidad de hilos
+int cant_cocineros = 1;
+int cant_delivery = 1;
+int cant_telefonos = 1;
+int cant_encargados = 1;
 
 typedef struct pedido
 {
@@ -81,16 +82,17 @@ void *telefono(void *arg);
 int main(int argc, char *argv[])
 {
 
-//intento dinamico WARNING: tira segmentation fault
-/*
-    pthread_t cocinero[cant_cocineros], delivery[cant_delivery], encargado[cant_encargados], telefono[cant_telefonos];
+//dinamico
+    //threads
+    pthread_t t_cocinero[cant_cocineros], t_delivery[cant_delivery], t_encargado[cant_encargados], t_telefono[cant_telefonos];
+    //structs
     cocinero_t cocinero_[cant_cocineros];
     delivery_t delivery_[cant_delivery];
     encargado_t encargado_[cant_encargados];
     telefono_t telefono_[cant_telefonos];
 
 
-
+    //creacion de structs
     for (int i = 0; i < cant_cocineros; i++)
     {
        cocinero_[i] = (cocinero_t) {i+1, 1, 1};
@@ -111,50 +113,53 @@ int main(int argc, char *argv[])
         telefono_[i] = (telefono_t) {i+1, 1, 1};
     }
 
+    //creacion de threads
     for (int i = 0; i < cant_cocineros; i++)
     {
-        pthread_create(&cocinero[i], NULL, cocinero, &cocinero_[i]);
+        pthread_create(&t_cocinero[i], NULL, cocinero, &cocinero_[i]);
     }
 
     for (int i = 0; i < cant_delivery; i++)
     {
-        pthread_create(&delivery[i], NULL, delivery, &delivery_[i]);
+        pthread_create(&t_delivery[i], NULL, delivery, &delivery_[i]);
     }
 
     for (int i = 0; i < cant_encargados; i++)
     {
-        pthread_create(&encargado[i], NULL, encargado, &encargado_[i]);
+        pthread_create(&t_encargado[i], NULL, encargado, &encargado_[i]);
     }
 
     for (int i = 0; i < cant_telefonos; i++)
     {
-        pthread_create(&telefono[i], NULL, telefono, &telefono_[i]);
+        pthread_create(&t_telefono[i], NULL, telefono, &telefono_[i]);
     }
+
+    //espera de threads
 
     for (int i = 0; i < cant_cocineros; i++)
     {
-        pthread_join(cocinero[i], NULL);
+        pthread_join(t_cocinero[i], NULL);
     }
 
     for (int i = 0; i < cant_delivery; i++)
     {
-        pthread_join(delivery[i], NULL);
+        pthread_join(t_delivery[i], NULL);
     }
 
     for (int i = 0; i < cant_encargados; i++)
     {
-        pthread_join(encargado[i], NULL);
+        pthread_join(t_encargado[i], NULL);
     }
 
     for (int i = 0; i < cant_telefonos; i++)
     {
-        pthread_join(telefono[i], NULL);
+        pthread_join(t_telefono[i], NULL);
     }
 
-*/
+
 
 //hardcodeado
-
+/*
     pthread_t cocinero1, cocinero2, delivery1, delivery2, encargado1, encargado2, telefono1, telefono2;
 
     cocinero_t cocinero_1 = {1, 1, 1};
@@ -183,7 +188,7 @@ int main(int argc, char *argv[])
     pthread_join(encargado2, NULL);
     pthread_join(telefono1, NULL);
     pthread_join(telefono2, NULL);
-
+*/
     return 0;
 }
 
@@ -258,7 +263,7 @@ void *telefono(void *arg)
         {
             pthread_cond_wait(&cond_telefono, &mutex_telefono);
         }
-        sleep(rand() % 10);
+        sleep(rand() % 2);
         printf("Telefono %d recibiendo pedido %d\n", telefono->numero, pedidos_totales + 1);
         sleep(telefono->tiempo_preparacion);
         printf("Telefono %d termino de recibir pedido %d\n", telefono->numero, pedidos_totales + 1);
