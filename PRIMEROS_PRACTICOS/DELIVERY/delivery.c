@@ -16,11 +16,12 @@ Se debe sincronizar la interacción entre los hilos utilizando MUTEX según la n
 #include <semaphore.h>
 
 //cantidad de hilos
-int cant_cocineros = 1;
-int cant_delivery = 1;
+int cant_cocineros = 3;
+int cant_delivery = 4;
 int cant_telefonos = 1;
 int cant_encargados = 1;
 
+//structs
 typedef struct pedido
 {
     int numero;
@@ -56,6 +57,8 @@ typedef struct telefono
     int tiempo_delivery;
 } telefono_t;
 
+//mutex
+
 pthread_mutex_t mutex_cocinero = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_delivery = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_encargado = PTHREAD_MUTEX_INITIALIZER;
@@ -66,10 +69,13 @@ pthread_cond_t cond_delivery = PTHREAD_COND_INITIALIZER;
 pthread_cond_t cond_encargado = PTHREAD_COND_INITIALIZER;
 pthread_cond_t cond_telefono = PTHREAD_COND_INITIALIZER;
 
+//contadores
 int pedidos_totales = 0;
 int pedidos_preparados = 0;
 int pedidos_entregados = 0;
 int pedidos_cobrados = 0;
+
+//prototipos de funciones
 
 void *cocinero(void *arg);
 
@@ -79,6 +85,7 @@ void *encargado(void *arg);
 
 void *telefono(void *arg);
 
+//MAIN
 int main(int argc, char *argv[])
 {
 
@@ -192,6 +199,8 @@ int main(int argc, char *argv[])
     return 0;
 }
 
+
+//FUNCIONES
 void *cocinero(void *arg)
 {
     cocinero_t *cocinero = (cocinero_t *)arg;
