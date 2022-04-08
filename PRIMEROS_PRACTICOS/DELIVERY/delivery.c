@@ -16,9 +16,9 @@ Se debe sincronizar la interacción entre los hilos utilizando MUTEX según la n
 #include <semaphore.h>
 
 //cantidad de hilos
-int cant_cocineros = 3;
-int cant_delivery = 4;
-int cant_telefonos = 5;
+int cant_cocineros = 1;
+int cant_delivery = 1;
+int cant_telefonos = 1;
 int cant_encargados = 1;
 
 int limite_pedidos = 10;
@@ -122,6 +122,31 @@ int main(int argc, char *argv[])
         telefono_[i] = (telefono_t) {i+1, rand() % 2 + 2, rand() % 2 + 2};
     }
 
+
+    printf("STATS:  \n ");
+
+    printf("COCINEROS:  \n ");
+    for (int i = 0; i < cant_cocineros; i++)
+    {
+        printf("cocinero %d : velocidad: %d \n cooldown: %d \n ", cocinero_[i].numero, cocinero_[i].tiempo_preparacion, cocinero_[i].tiempo_delivery);
+    }
+    sleep(1);
+    printf("DELIVERYS:  \n ");
+    for (int i = 0; i < cant_delivery; i++)
+    {
+        printf("delivery %d : velocidad: %d \n cooldown: %d \n ", delivery_[i].numero, delivery_[i].tiempo_preparacion, delivery_[i].tiempo_delivery);
+    }
+    sleep(1);
+    printf("ENCARGADOS:  \n ");
+    for (int i = 0; i < cant_encargados; i++)
+    {
+        printf("encargado %d : velocidad: %d \n cooldown: %d \n ", encargado_[i].numero, encargado_[i].tiempo_preparacion, encargado_[i].tiempo_delivery);
+    }
+    
+    sleep(5);
+    printf("INICIO DE SIMULACION:  \n ");
+
+    
     //creacion de threads
     for (int i = 0; i < cant_cocineros; i++)
     {
@@ -166,37 +191,7 @@ int main(int argc, char *argv[])
     }
 
     
-//hardcodeado
-/*
-    pthread_t cocinero1, cocinero2, delivery1, delivery2, encargado1, encargado2, telefono1, telefono2;
 
-    cocinero_t cocinero_1 = {1, 1, 1};
-    cocinero_t cocinero_2 = {2, 1, 1};
-    delivery_t delivery_1 = {1, 1, 1};
-    delivery_t delivery_2 = {2, 1, 1};
-    encargado_t encargado_1 = {1, 1, 1};
-    encargado_t encargado_2 = {2, 1, 1};
-    telefono_t telefono_1 = {1, 1, 1};
-    telefono_t telefono_2 = {2, 1, 1};
-
-    pthread_create(&cocinero1, NULL, cocinero, &cocinero_1);
-    pthread_create(&cocinero2, NULL, cocinero, &cocinero_2);
-    pthread_create(&delivery1, NULL, delivery, &delivery_1);
-    pthread_create(&delivery2, NULL, delivery, &delivery_2);
-    pthread_create(&encargado1, NULL, encargado, &encargado_1);
-    pthread_create(&encargado2, NULL, encargado, &encargado_2);
-    pthread_create(&telefono1, NULL, telefono, &telefono_1);
-    pthread_create(&telefono2, NULL, telefono, &telefono_2);
-
-    pthread_join(cocinero1, NULL);
-    pthread_join(cocinero2, NULL);
-    pthread_join(delivery1, NULL);
-    pthread_join(delivery2, NULL);
-    pthread_join(encargado1, NULL);
-    pthread_join(encargado2, NULL);
-    pthread_join(telefono1, NULL);
-    pthread_join(telefono2, NULL);
-*/
     return 0;
 }
 
