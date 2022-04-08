@@ -104,12 +104,12 @@ int main(int argc, char *argv[])
     //creacion de structs
     for (int i = 0; i < cant_cocineros; i++)
     {
-       cocinero_[i] = (cocinero_t) {i+1, rand() % 2, rand() % 2};
+       cocinero_[i] = (cocinero_t) {i+1, rand() % 2 + 2, rand() % 2 + 2};
     }
 
     for (int i = 0; i < cant_delivery; i++)
     {
-        delivery_[i] = (delivery_t){i+1, rand() % 2, rand() % 2};
+        delivery_[i] = (delivery_t){i+1, rand() % 2 + 2, rand() % 2 + 2};
     }
 
     for (int i = 0; i < cant_encargados; i++)
@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
 
     for (int i = 0; i < cant_cocineros; i++)
     {
-        telefono_[i] = (telefono_t) {i+1, rand() % 2, rand() % 2};
+        telefono_[i] = (telefono_t) {i+1, rand() % 2 + 2, rand() % 2 + 2};
     }
 
     //creacion de threads
@@ -207,17 +207,25 @@ void *cocinero(void *arg)
     cocinero_t *cocinero = (cocinero_t *)arg;
     while (1)
     {   
-        sleep(cocinero->tiempo_preparacion);
+        sleep(cocinero->tiempo_delivery);
         pthread_mutex_lock(&mutex_cocinero);
         while (pedidos_preparados == pedidos_totales)
         {
             pthread_cond_wait(&cond_cocinero, &mutex_cocinero);
         }
         printf("Cocinero %d preparando pedido %d\n", cocinero->numero, pedidos_preparados + 1);
+        pthread_mutex_unlock(&mutex_cocinero);
+        sleep(cocinero->tiempo_preparacion);
+        pthread_mutex_lock(&mutex_cocinero);       
         printf("Cocinero %d termino de preparar pedido %d\n", cocinero->numero, pedidos_preparados + 1);
         pedidos_preparados++;
         pthread_cond_signal(&cond_delivery);
+        if (pedidos_preparados>=limite_pedidos)
+        {
+            pthread_exit(NULL);
+        }
         pthread_mutex_unlock(&mutex_cocinero);
+        
     }
     pthread_exit(NULL);
 }
@@ -234,10 +242,18 @@ void *delivery(void *arg)
             pthread_cond_wait(&cond_delivery, &mutex_delivery);
         }
         printf("Delivery %d entregando pedido %d\n", delivery->numero, pedidos_entregados + 1);
+        pthread_mutex_unlock(&mutex_delivery);
+        sleep(delivery->tiempo_delivery);
+        pthread_mutex_lock(&mutex_delivery);
         printf("Delivery %d termino de entregar pedido %d\n", delivery->numero, pedidos_entregados + 1);
         pedidos_entregados++;
         pthread_cond_signal(&cond_encargado);
+        if (pedidos_entregados>=limite_pedidos)
+        {
+            pthread_exit(NULL);
+        }
         pthread_mutex_unlock(&mutex_delivery);
+        
     }
     pthread_exit(NULL);
 }
@@ -247,22 +263,26 @@ void *encargado(void *arg)
     encargado_t *encargado = (encargado_t *)arg;
     while (1)
     {
-        sleep(encargado->tiempo_preparacion);
+        sleep(encargado->tiempo_delivery);
         pthread_mutex_lock(&mutex_encargado);
         while (pedidos_cobrados == pedidos_totales)
         {
             pthread_cond_wait(&cond_encargado, &mutex_encargado);
         }
         printf("Encargado %d cobrando pedido %d\n", encargado->numero, pedidos_cobrados + 1);
+        pthread_mutex_unlock(&mutex_encargado);
+        sleep(encargado->tiempo_preparacion);
+        pthread_mutex_lock(&mutex_encargado);
         printf("Encargado %d termino de cobrar pedido %d\n", encargado->numero, pedidos_cobrados + 1);
         pedidos_cobrados++;
         pthread_cond_signal(&cond_telefono);
-        pthread_mutex_unlock(&mutex_encargado);
-
         if (pedidos_cobrados>=limite_pedidos)
         {
             exit(EXIT_SUCCESS);
         }
+        pthread_mutex_unlock(&mutex_encargado);
+
+
     }
     pthread_exit(NULL);
 }
@@ -272,17 +292,30 @@ void *telefono(void *arg)
     telefono_t *telefono = (telefono_t *)arg;
     while (1)
     {
-        //sleep(rand() % 2);
+        if (telefono->numero ==0)
+        {
+            telefono->numero = cant_telefonos-1;
+        }
+        
         pthread_mutex_lock(&mutex_telefono);
+        sleep(rand() % 2);
         while (pedidos_totales >= 10)
         {
             pthread_cond_wait(&cond_telefono, &mutex_telefono);
         }
         printf("Telefono %d recibiendo pedido %d\n", telefono->numero, pedidos_totales + 1);
+        pthread_mutex_unlock(&mutex_telefono);
         sleep(telefono->tiempo_preparacion);
+        pthread_mutex_lock(&mutex_telefono);
         printf("Telefono %d termino de recibir pedido %d\n", telefono->numero, pedidos_totales + 1);
         pedidos_totales++;
         pthread_cond_signal(&cond_cocinero);
+        if (pedidos_totales>=limite_pedidos)
+        {
+            pthread_exit(NULL);
+        }
+
+        
         pthread_mutex_unlock(&mutex_telefono);
 
     }
