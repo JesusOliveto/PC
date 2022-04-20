@@ -1,11 +1,16 @@
-/* Se debe realizar el motor de un juego que denominaremos "Delivery". Este juego simulará la actividad de un local de comidas en el cual ingresan los pedidos por teléfono y los empleados tienen que preparar y entregar lo indicado.
+/*Se debe realizar el motor de un juego que denominaremos "Delivery". Este juego simulará la actividad de un local de comidas en el cual ingresan los pedidos por teléfono y los empleados tienen que preparar y entregar lo indicado.
+
 En esta primer etapa se deberá trabajar sobre cuatro tipos de hilos:
 encargado que da curso a los pedidos de los clientes y, luego de entregado el pedido, guarda el cobro en la caja,
 telefono que genera los pedidos de los clientes,
 cocinero que prepara la comida,
 delivery que lleva los pedidos a los clientes,
+
 El encargado atiende los pedidos que llegan por telefono separados un tiempo aleatorio. El cocinero prepara el pedido, demorando un tiempo diferente según la comida solicitada; solo puede preparar un pedido por vez. El delivery entrega los pedidos a los clientes (de a uno por vez), demorando un tiempo diferente (aleatorio) según la distancia, y al regresar entrega el monto del pedido al encargado.
-Se debe sincronizar la interacción entre los hilos utilizando MUTEX según la necesidad. El delivery deberá esperar a que el cocinero termine el pedido antes de poder entregarlo.
+
+Esta versión tendrá 3 cocineros y 2 delivery.
+
+Se debe sincronizar la interacción entre los hilos utilizando SEMÁFOROS según la necesidad (revisar Split Binary Semaphore).
 */
 
 #include <stdio.h>
@@ -16,12 +21,12 @@ Se debe sincronizar la interacción entre los hilos utilizando MUTEX según la n
 #include <semaphore.h>
 
 //cantidad de hilos
-int cant_cocineros = 1;
-int cant_delivery = 1;
+int cant_cocineros = 3;
+int cant_delivery = 2;
 int cant_telefonos = 1;
 int cant_encargados = 1;
 
-int limite_pedidos = 10;
+const int limite_pedidos = 10;
 
 
 void *cocinero(void *arg);
@@ -33,162 +38,132 @@ void *encargado(void *arg);
 void *telefono(void *arg);
 
 //semaforos
-sem_t sem_cocinero;
+sem_t sem_cocineros;
 sem_t sem_delivery;
-sem_t sem_encargado;
-sem_t sem_telefono;
+sem_t sem_encargados;
+sem_t sem_telefonos;
 
-//mutex
-pthread_mutex_t mutex_cocinero;
-pthread_mutex_t mutex_delivery;
-pthread_mutex_t mutex_encargado;
-pthread_mutex_t mutex_telefono;
+//semaforos para proteger recurso compartido
+sem_t sem_bandeja;
 
-//variables globales
-int pedidos_totales = 0;
-int pedidos_entregados = 0;
-int pedidos_cocinados = 0;
-int pedidos_atendidos = 0;
-int pedidos_cocinando = 0;
-int pedidos_entregando = 0;
-int pedidos_atendiendo = 0;
-int pedidos_telefono = 0;
-int pedidos_caja = 0;
+//recurso compartido
+int bandeja[limite_pedidos];
+
+int contador_pedidos = 0;
+int contador_pedidos_cocineros = 0;
+int contador_pedidos_delivery = 0;
 
 int main() {
-    //inicializacion de semaforos
-    sem_init(&sem_cocinero, 0, 0);
-    sem_init(&sem_delivery, 0, 0);
-    sem_init(&sem_encargado, 0, 0);
-    sem_init(&sem_telefono, 0, 1);
+    pthread_t cocineros;
+    pthread_t delivery;
+    pthread_t encargados;
+    pthread_t telefonos;
 
-    //inicializacion de mutex
-    pthread_mutex_init(&mutex_cocinero, NULL);
-    pthread_mutex_init(&mutex_delivery, NULL);
-    pthread_mutex_init(&mutex_encargado, NULL);
-    pthread_mutex_init(&mutex_telefono, NULL);
+    int i, j;
 
-    //inicializacion de hilos
-    pthread_t cocineros[cant_cocineros];
-    pthread_t deliverys[cant_delivery];
-    pthread_t encargados[cant_encargados];
-    pthread_t telefonos[cant_telefonos];
+    srand(time(NULL));
 
-    //creacion de hilos
-    for (int i = 0; i < cant_cocineros; ++i) {
-        pthread_create(&cocineros[i], NULL, cocinero, NULL);
-    }
-    for (int i = 0; i < cant_delivery; ++i) {
-        pthread_create(&deliverys[i], NULL, delivery, NULL);
-    }
-    for (int i = 0; i < cant_encargados; ++i) {
-        pthread_create(&encargados[i], NULL, encargado, NULL);
-    }
-    for (int i = 0; i < cant_telefonos; ++i) {
-        pthread_create(&telefonos[i], NULL, telefono, NULL);
+    sem_init(&sem_cocineros, 0, 0); // 0 inicialmente, cuenta cuantos cocineros pueden usar el recurso
+    sem_init(&sem_delivery, 0, 0); // 0 inicialmente, cuenta cuantos delivery pueden usar el recurso
+    sem_init(&sem_encargados, 0, 0); // 0 inicialmente, cuenta cuantos encargados pueden usar el recurso
+    sem_init(&sem_telefonos, 0, 0); // 0 inicialmente, cuenta cuantos telefonos pueden usar el recurso
+
+    sem_init(&sem_bandeja, 0, 1); // 1 inicialmente, protege el recurso compartido
+
+    for (i = 0; i < cant_cocineros; i++) {
+        // creamos hilos cocineros
+        pthread_create(&cocineros, NULL, cocinero, (void *) i);
     }
 
-    //espera de hilos
-    for (int i = 0; i < cant_cocineros; ++i) {
-        pthread_join(cocineros[i], NULL);
-    }
-    for (int i = 0; i < cant_delivery; ++i) {
-        pthread_join(deliverys[i], NULL);
-    }
-    for (int i = 0; i < cant_encargados; ++i) {
-        pthread_join(encargados[i], NULL);
-    }
-    for (int i = 0; i < cant_telefonos; ++i) {
-        pthread_join(telefonos[i], NULL);
+    for (i = 0; i < cant_delivery; i++) {
+        // creamos hilos delivery
+        pthread_create(&delivery, NULL, delivery, (void *) i);
     }
 
-    //destruccion de semaforos
-    sem_destroy(&sem_cocinero);
-    sem_destroy(&sem_delivery);
-    sem_destroy(&sem_encargado);
-    sem_destroy(&sem_telefono);
+    for (i = 0; i < cant_encargados; i++) {
+        // creamos hilos encargados
+        pthread_create(&encargados, NULL, encargado, (void *) i);
+    }
 
-    //destruccion de mutex
-    pthread_mutex_destroy(&mutex_cocinero);
-    pthread_mutex_destroy(&mutex_delivery);
-    pthread_mutex_destroy(&mutex_encargado);
-    pthread_mutex_destroy(&mutex_telefono);
+    for (i = 0; i < cant_telefonos; i++) {
+        // creamos hilos telefonos
+        pthread_create(&telefonos, NULL, telefono, (void *) i);
+    }
 
-    return 0;
+    //pthread_exit(NULL);
 }
 
 void *cocinero(void *arg) {
-    while (pedidos_totales < limite_pedidos) {
-        sem_wait(&sem_cocinero);
-        pthread_mutex_lock(&mutex_cocinero);
-        pedidos_cocinando++;
-        printf("Cocinero %ld: Cocinando pedido %d\n", pthread_self(), pedidos_cocinados);
-        pthread_mutex_unlock(&mutex_cocinero);
-        sleep(rand() % 5);
-        pthread_mutex_lock(&mutex_cocinero);
-        pedidos_cocinando--;
-        pedidos_cocinados++;
-        printf("Cocinero %ld: Pedido %d cocinado\n", pthread_self(), pedidos_cocinados);
-        pthread_mutex_unlock(&mutex_cocinero);
-        sem_post(&sem_delivery);
-    }
+    int id = (int) arg;
+
+    sem_wait(&sem_cocineros); // resta 1 al semaforo para proteger el recurso compartido
+    sem_wait(&sem_bandeja); // espera a que haya pedidos
+
+    contador_pedidos_cocineros++;
+
+    printf("El cocinero %d esta preparando la comida. El pedido es %d.\n", id, bandeja[contador_pedidos_cocineros]);
+
+    int tiempo_preparacion = rand() % 10;
+    sleep(tiempo_preparacion);
+    printf("El cocinero %d termino de preparar la comida. El pedido fue %d.\n", id, bandeja[contador_pedidos_cocineros]);
+
+    sem_post(&sem_cocineros); // agrega 1 al semaforo para indicar que otro cocinero puede usar el recurso compartido
+    sem_post(&sem_delivery); // avisa que un delivery esta listo para ir a entregar un pedido
     pthread_exit(NULL);
 }
 
 void *delivery(void *arg) {
-    while (pedidos_totales < limite_pedidos) {
-        sem_wait(&sem_delivery);
-        pthread_mutex_lock(&mutex_delivery);
-        pedidos_entregando++;
-        printf("Delivery %ld: Entregando pedido %d\n", pthread_self(), pedidos_entregados);
-        pthread_mutex_unlock(&mutex_delivery);
-        sleep(rand() % 5);
-        pthread_mutex_lock(&mutex_delivery);
-        pedidos_entregando--;
-        pedidos_entregados++;
-        printf("Delivery %ld: Pedido %d entregado\n", pthread_self(), pedidos_entregados);
-        pthread_mutex_unlock(&mutex_delivery);
-        sem_post(&sem_encargado);
-    }
+    int id = (int) arg;
+
+    sem_wait(&sem_delivery); // resta 1 al semaforo para proteger el recurso compartido
+
+    contador_pedidos_delivery++;
+
+    printf("El delivery %d esta listo para llevar el pedido %d.\n", id, bandeja[contador_pedidos_delivery]);
+
+    int tiempo_entrega = rand() % 10;
+    sleep(tiempo_entrega);
+    printf("El delivery %d termino de llevar el pedido %d.\n", id, bandeja[contador_pedidos_delivery]);
+
+    sem_post(&sem_encargados); // avisa que un encargado puede recibir un pedido
     pthread_exit(NULL);
 }
 
 void *encargado(void *arg) {
-    while (pedidos_totales < limite_pedidos) {
-        sem_wait(&sem_encargado);
-        pthread_mutex_lock(&mutex_encargado);
-        pedidos_atendiendo++;
-        printf("Encargado %ld: Atendiendo pedido %d\n", pthread_self(), pedidos_atendidos);
-        pthread_mutex_unlock(&mutex_encargado);
-        //sleep(rand() % 5);
-        pthread_mutex_lock(&mutex_encargado);
-        pedidos_atendiendo--;
-        pedidos_atendidos++;
-        printf("Encargado %ld: Pedido %d atendido\n", pthread_self(), pedidos_atendidos);
-        pthread_mutex_unlock(&mutex_encargado);
-        sem_post(&sem_telefono);
-    }
+    int id = (int) arg;
+
+    sem_wait(&sem_encargados); // resta 1 al semaforo para proteger el recurso compartido
+
+    printf("El encargado %d esta cobrando el pedido %d.\n", id, bandeja[contador_pedidos_delivery]);
+
+    int tiempo_cobro = rand() % 10;
+    sleep(tiempo_cobro);
+    printf("El encargado %d termino de cobrar el pedido %d.\n", id, bandeja[contador_pedidos_delivery]);
+
+    sem_post(&sem_bandeja); // avisa que un cocinero puede preparar un nuevo pedido
     pthread_exit(NULL);
 }
 
 void *telefono(void *arg) {
-    while (pedidos_totales < limite_pedidos) {
-        sem_wait(&sem_telefono);
-        pthread_mutex_lock(&mutex_telefono);
-        pedidos_telefono++;
-        printf("Telefono %ld: Llamada %d\n", pthread_self(), pedidos_telefono);
-        pthread_mutex_unlock(&mutex_telefono);
-        sleep(rand() % 5);
-        pthread_mutex_lock(&mutex_telefono);
-        pedidos_telefono--;
-        pedidos_totales++;
-        printf("Telefono %ld: Pedido %d recibido\n", pthread_self(), pedidos_totales);
-        pthread_mutex_unlock(&mutex_telefono);
-        sem_post(&sem_cocinero);
+    int id = (int) arg;
+
+    sem_wait(&sem_telefonos); // resta 1 al semaforo para proteger el recurso compartido
+
+    printf("El telefono %d recibio un pedido.\n", id);
+
+    int tiempo_cobro = rand() % 10;
+    sleep(tiempo_cobro);
+
+    if (contador_pedidos < limite_pedidos) {
+        contador_pedidos++;
+
+        bandeja[contador_pedidos] = contador_pedidos;
+        printf("El telefono %d asigno el pedido %d.\n", id, bandeja[contador_pedidos]);
+        sem_post(&sem_cocineros); // avisa que un cocinero puede preparar un nuevo pedido
+    } else {
+        printf("No puede atenderse más pedidos.\n");
     }
+
+    sem_post(&sem_telefonos); // avisa que un telefono puede recibir un nuevo pedido
     pthread_exit(NULL);
 }
-
-
-
-
