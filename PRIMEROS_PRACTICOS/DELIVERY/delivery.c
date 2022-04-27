@@ -27,11 +27,7 @@ int pedidos_atendidos = 0;
 int pedidos_cocinados = 0;
 int pedidos_entregados = 0;
 
-<<<<<<< HEAD
 int limite_pedidos = 3;
-=======
-int limite_pedidos = 10;
->>>>>>> 7c76cd047c07cc6c28b9ea7a3bde37c75a07dac8
 
 //structs
 typedef struct pedido
@@ -170,13 +166,10 @@ void *encargado(void *arg)
         sleep(encargado->tiempo_preparacion);
         printf("Encargado %d termino de cobrar pedido %d\n", encargado->numero, pedidos_entregados);
         sem_post(&sem_telefono);
-<<<<<<< HEAD
         if (pedidos_entregados>=limite_pedidos)
         {
             exit(EXIT_SUCCESS);
         }
-=======
->>>>>>> 7c76cd047c07cc6c28b9ea7a3bde37c75a07dac8
     }
     pthread_exit(NULL);
 }
