@@ -10,7 +10,8 @@ El encargado atiende los pedidos que llegan por telefono separados un tiempo ale
 
 Esta versión tendrá 3 cocineros y 2 delivery.
 
-Se debe sincronizar la interacción entre los hilos utilizando SEMÁFOROS según la necesidad (revisar Split Binary Semaphore).
+Se debe sincronizar la interacción entre los hilos utilizando SEMÁFOROS según la necesidad (revisar Split Binary Semaphore)
+
 */
 
 #include <stdio.h>
@@ -20,150 +21,138 @@ Se debe sincronizar la interacción entre los hilos utilizando SEMÁFOROS según
 #include <time.h>
 #include <semaphore.h>
 
-//cantidad de hilos
-int cant_cocineros = 3;
-int cant_delivery = 2;
-int cant_telefonos = 1;
-int cant_encargados = 1;
+typedef struct pedido
+{
+    int numero;
+    int tiempo_preparacion;
+    int tiempo_delivery;
+} pedido_t;
 
-const int limite_pedidos = 10;
+typedef struct cocinero
+{
+    int numero;
+    int tiempo_preparacion;
+    int tiempo_delivery;
+} cocinero_t;
 
+typedef struct delivery
+{
+    int numero;
+    int tiempo_preparacion;
+    int tiempo_delivery;
+} delivery_t;
 
-void *cocinero(void *arg);
+typedef struct encargado
+{
+    int numero;
+    int tiempo_preparacion;
+    int tiempo_delivery;
+} encargado_t;
 
-void *delivery(void *arg);
+typedef struct telefono
+{
+    int numero;
+    int tiempo_preparacion;
+    int tiempo_delivery;
+} telefono_t;
 
-void *encargado(void *arg);
-
-void *telefono(void *arg);
-
-//semaforos
-sem_t sem_cocineros;
+sem_t sem_cocinero;
 sem_t sem_delivery;
-sem_t sem_encargados;
-sem_t sem_telefonos;
+sem_t sem_encargado;
+sem_t sem_telefono;
 
-//semaforos para proteger recurso compartido
-sem_t sem_bandeja;
-
-//recurso compartido
-int bandeja[limite_pedidos];
-
-int contador_pedidos = 0;
-int contador_pedidos_cocineros = 0;
-int contador_pedidos_delivery = 0;
-
-int main() {
-    pthread_t cocineros;
-    pthread_t delivery;
-    pthread_t encargados;
-    pthread_t telefonos;
-
-    int i, j;
-
-    srand(time(NULL));
-
-    sem_init(&sem_cocineros, 0, 0); // 0 inicialmente, cuenta cuantos cocineros pueden usar el recurso
-    sem_init(&sem_delivery, 0, 0); // 0 inicialmente, cuenta cuantos delivery pueden usar el recurso
-    sem_init(&sem_encargados, 0, 0); // 0 inicialmente, cuenta cuantos encargados pueden usar el recurso
-    sem_init(&sem_telefonos, 0, 0); // 0 inicialmente, cuenta cuantos telefonos pueden usar el recurso
-
-    sem_init(&sem_bandeja, 0, 1); // 1 inicialmente, protege el recurso compartido
-
-    for (i = 0; i < cant_cocineros; i++) {
-        // creamos hilos cocineros
-        pthread_create(&cocineros, NULL, cocinero, (void *) i);
+void *cocinero(void *arg)
+{
+    cocinero_t *cocinero = (cocinero_t *)arg;
+    while (1)
+    {
+        sem_wait(&sem_cocinero);
+        printf("Cocinero %d preparando pedido\n", cocinero->numero);
+        sleep(cocinero->tiempo_preparacion);
+        printf("Cocinero %d termino de preparar pedido\n", cocinero->numero);
+        sem_post(&sem_delivery);
     }
-
-    for (i = 0; i < cant_delivery; i++) {
-        // creamos hilos delivery
-        pthread_create(&delivery, NULL, delivery, (void *) i);
-    }
-
-    for (i = 0; i < cant_encargados; i++) {
-        // creamos hilos encargados
-        pthread_create(&encargados, NULL, encargado, (void *) i);
-    }
-
-    for (i = 0; i < cant_telefonos; i++) {
-        // creamos hilos telefonos
-        pthread_create(&telefonos, NULL, telefono, (void *) i);
-    }
-
-    //pthread_exit(NULL);
 }
 
-void *cocinero(void *arg) {
-    int id = (int) arg;
-
-    sem_wait(&sem_cocineros); // resta 1 al semaforo para proteger el recurso compartido
-    sem_wait(&sem_bandeja); // espera a que haya pedidos
-
-    contador_pedidos_cocineros++;
-
-    printf("El cocinero %d esta preparando la comida. El pedido es %d.\n", id, bandeja[contador_pedidos_cocineros]);
-
-    int tiempo_preparacion = rand() % 10;
-    sleep(tiempo_preparacion);
-    printf("El cocinero %d termino de preparar la comida. El pedido fue %d.\n", id, bandeja[contador_pedidos_cocineros]);
-
-    sem_post(&sem_cocineros); // agrega 1 al semaforo para indicar que otro cocinero puede usar el recurso compartido
-    sem_post(&sem_delivery); // avisa que un delivery esta listo para ir a entregar un pedido
-    pthread_exit(NULL);
-}
-
-void *delivery(void *arg) {
-    int id = (int) arg;
-
-    sem_wait(&sem_delivery); // resta 1 al semaforo para proteger el recurso compartido
-
-    contador_pedidos_delivery++;
-
-    printf("El delivery %d esta listo para llevar el pedido %d.\n", id, bandeja[contador_pedidos_delivery]);
-
-    int tiempo_entrega = rand() % 10;
-    sleep(tiempo_entrega);
-    printf("El delivery %d termino de llevar el pedido %d.\n", id, bandeja[contador_pedidos_delivery]);
-
-    sem_post(&sem_encargados); // avisa que un encargado puede recibir un pedido
-    pthread_exit(NULL);
-}
-
-void *encargado(void *arg) {
-    int id = (int) arg;
-
-    sem_wait(&sem_encargados); // resta 1 al semaforo para proteger el recurso compartido
-
-    printf("El encargado %d esta cobrando el pedido %d.\n", id, bandeja[contador_pedidos_delivery]);
-
-    int tiempo_cobro = rand() % 10;
-    sleep(tiempo_cobro);
-    printf("El encargado %d termino de cobrar el pedido %d.\n", id, bandeja[contador_pedidos_delivery]);
-
-    sem_post(&sem_bandeja); // avisa que un cocinero puede preparar un nuevo pedido
-    pthread_exit(NULL);
-}
-
-void *telefono(void *arg) {
-    int id = (int) arg;
-
-    sem_wait(&sem_telefonos); // resta 1 al semaforo para proteger el recurso compartido
-
-    printf("El telefono %d recibio un pedido.\n", id);
-
-    int tiempo_cobro = rand() % 10;
-    sleep(tiempo_cobro);
-
-    if (contador_pedidos < limite_pedidos) {
-        contador_pedidos++;
-
-        bandeja[contador_pedidos] = contador_pedidos;
-        printf("El telefono %d asigno el pedido %d.\n", id, bandeja[contador_pedidos]);
-        sem_post(&sem_cocineros); // avisa que un cocinero puede preparar un nuevo pedido
-    } else {
-        printf("No puede atenderse más pedidos.\n");
+void *delivery(void *arg)
+{
+    delivery_t *delivery = (delivery_t *)arg;
+    while (1)
+    {
+        sem_wait(&sem_delivery);
+        printf("Delivery %d entregando pedido\n", delivery->numero);
+        sleep(delivery->tiempo_delivery);
+        printf("Delivery %d termino de entregar pedido\n", delivery->numero);
+        sem_post(&sem_encargado);
     }
+}
 
-    sem_post(&sem_telefonos); // avisa que un telefono puede recibir un nuevo pedido
-    pthread_exit(NULL);
+void *encargado(void *arg)
+{
+    encargado_t *encargado = (encargado_t *)arg;
+    while (1)
+    {
+        sem_wait(&sem_encargado);
+        printf("Encargado %d cobrando pedido\n", encargado->numero);
+        sleep(encargado->tiempo_preparacion);
+        printf("Encargado %d termino de cobrar pedido\n", encargado->numero);
+        sem_post(&sem_telefono);
+    }
+}
+
+void *telefono(void *arg)
+{
+    telefono_t *telefono = (telefono_t *)arg;
+    while (1)
+    {
+        sem_wait(&sem_telefono);
+        printf("Telefono %d recibiendo pedido\n", telefono->numero);
+        sleep(telefono->tiempo_delivery);
+        printf("Telefono %d termino de recibir pedido\n", telefono->numero);
+        sem_post(&sem_cocinero);
+    }
+}
+
+int main(int argc, char *argv[])
+{
+    pthread_t cocinero1, cocinero2, cocinero3, delivery1, delivery2, encargado1, telefono1;
+
+    cocinero_t cocinero_1 = {1, 1, 1};
+    cocinero_t cocinero_2 = {2, 2, 2};
+    cocinero_t cocinero_3 = {3, 3, 3};
+
+    delivery_t delivery_1 = {1, 1, 1};
+    delivery_t delivery_2 = {2, 2, 2};
+
+    encargado_t encargado_1 = {1, 1, 1};
+
+    telefono_t telefono_1 = {1, 1, 1};
+
+    sem_init(&sem_cocinero, 0, 0);
+    sem_init(&sem_delivery, 0, 0);
+    sem_init(&sem_encargado, 0, 0);
+    sem_init(&sem_telefono, 0, 1);
+
+    pthread_create(&cocinero1, NULL, cocinero, &cocinero_1);
+    pthread_create(&cocinero2, NULL, cocinero, &cocinero_2);
+    pthread_create(&cocinero3, NULL, cocinero, &cocinero_3);
+    pthread_create(&delivery1, NULL, delivery, &delivery_1);
+    pthread_create(&delivery2, NULL, delivery, &delivery_2);
+    pthread_create(&encargado1, NULL, encargado, &encargado_1);
+    pthread_create(&telefono1, NULL, telefono, &telefono_1);
+
+    pthread_join(cocinero1, NULL);
+    pthread_join(cocinero2, NULL);
+    pthread_join(cocinero3, NULL);
+    pthread_join(delivery1, NULL);
+    pthread_join(delivery2, NULL);
+    pthread_join(encargado1, NULL);
+    pthread_join(telefono1, NULL);
+
+    sem_destroy(&sem_cocinero);
+    sem_destroy(&sem_delivery);
+    sem_destroy(&sem_encargado);
+    sem_destroy(&sem_telefono);
+
+    return 0;
 }
