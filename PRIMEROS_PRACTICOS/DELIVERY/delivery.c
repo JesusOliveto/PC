@@ -21,6 +21,15 @@ Se debe sincronizar la interacción entre los hilos utilizando SEMÁFOROS según
 #include <time.h>
 #include <semaphore.h>
 
+//variables globales
+
+int pedidos_atendidos = 0;
+int pedidos_cocinados = 0;
+int pedidos_entregados = 0;
+
+int limite_pedidos = 10;
+
+//structs
 typedef struct pedido
 {
     int numero;
@@ -56,62 +65,21 @@ typedef struct telefono
     int tiempo_delivery;
 } telefono_t;
 
+//semaphores
+
 sem_t sem_cocinero;
 sem_t sem_delivery;
 sem_t sem_encargado;
 sem_t sem_telefono;
 
-void *cocinero(void *arg)
-{
-    cocinero_t *cocinero = (cocinero_t *)arg;
-    while (1)
-    {
-        sem_wait(&sem_cocinero);
-        printf("Cocinero %d preparando pedido\n", cocinero->numero);
-        sleep(cocinero->tiempo_preparacion);
-        printf("Cocinero %d termino de preparar pedido\n", cocinero->numero);
-        sem_post(&sem_delivery);
-    }
-}
+//funciones
+void *cocinero(void *arg);
 
-void *delivery(void *arg)
-{
-    delivery_t *delivery = (delivery_t *)arg;
-    while (1)
-    {
-        sem_wait(&sem_delivery);
-        printf("Delivery %d entregando pedido\n", delivery->numero);
-        sleep(delivery->tiempo_delivery);
-        printf("Delivery %d termino de entregar pedido\n", delivery->numero);
-        sem_post(&sem_encargado);
-    }
-}
+void *delivery(void *arg);
 
-void *encargado(void *arg)
-{
-    encargado_t *encargado = (encargado_t *)arg;
-    while (1)
-    {
-        sem_wait(&sem_encargado);
-        printf("Encargado %d cobrando pedido\n", encargado->numero);
-        sleep(encargado->tiempo_preparacion);
-        printf("Encargado %d termino de cobrar pedido\n", encargado->numero);
-        sem_post(&sem_telefono);
-    }
-}
+void *encargado(void *arg);
 
-void *telefono(void *arg)
-{
-    telefono_t *telefono = (telefono_t *)arg;
-    while (1)
-    {
-        sem_wait(&sem_telefono);
-        printf("Telefono %d recibiendo pedido\n", telefono->numero);
-        sleep(telefono->tiempo_delivery);
-        printf("Telefono %d termino de recibir pedido\n", telefono->numero);
-        sem_post(&sem_cocinero);
-    }
-}
+void *telefono(void *arg);
 
 int main(int argc, char *argv[])
 {
@@ -155,4 +123,64 @@ int main(int argc, char *argv[])
     sem_destroy(&sem_telefono);
 
     return 0;
+}
+
+
+void *cocinero(void *arg)
+{
+    cocinero_t *cocinero = (cocinero_t *)arg;
+    while (pedidos_entregados<limite_pedidos)
+    {
+        sem_wait(&sem_cocinero);
+        pedidos_cocinados++;
+        printf("Cocinero %d preparando pedido %d \n", cocinero->numero, pedidos_cocinados);
+        sleep(cocinero->tiempo_preparacion);
+        printf("Cocinero %d termino de preparar pedido %d\n", cocinero->numero, pedidos_cocinados);
+        sem_post(&sem_delivery);
+    }
+    pthread_exit(NULL);
+}
+
+void *delivery(void *arg)
+{
+    delivery_t *delivery = (delivery_t *)arg;
+    while (pedidos_entregados<limite_pedidos)
+    {
+        sem_wait(&sem_delivery);
+        pedidos_entregados++;
+        printf("Delivery %d entregando pedido %d\n", delivery->numero, pedidos_entregados);
+        sleep(delivery->tiempo_delivery);
+        printf("Delivery %d termino de entregar pedido %d\n", delivery->numero, pedidos_entregados);
+        sem_post(&sem_encargado);
+    }
+    pthread_exit(NULL);
+}
+
+void *encargado(void *arg)
+{
+    encargado_t *encargado = (encargado_t *)arg;
+    while (pedidos_entregados<limite_pedidos)
+    {
+        sem_wait(&sem_encargado);
+        printf("Encargado %d cobrando pedido %d\n", encargado->numero, pedidos_entregados);
+        sleep(encargado->tiempo_preparacion);
+        printf("Encargado %d termino de cobrar pedido %d\n", encargado->numero, pedidos_entregados);
+        sem_post(&sem_telefono);
+    }
+    pthread_exit(NULL);
+}
+
+void *telefono(void *arg)
+{
+    telefono_t *telefono = (telefono_t *)arg;
+    while (pedidos_entregados<limite_pedidos)
+    {
+        sem_wait(&sem_telefono);
+        pedidos_atendidos++;
+        printf("Telefono %d recibiendo pedido %d\n", telefono->numero, pedidos_atendidos);
+        sleep(telefono->tiempo_delivery);
+        printf("Telefono %d termino de recibir pedido %d\n", telefono->numero, pedidos_atendidos);
+        sem_post(&sem_cocinero);
+    }
+    pthread_exit(NULL);
 }
