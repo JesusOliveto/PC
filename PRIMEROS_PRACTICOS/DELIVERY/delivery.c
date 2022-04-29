@@ -129,7 +129,7 @@ int main(int argc, char *argv[])
 void *cocinero(void *arg)
 {
     cocinero_t *cocinero = (cocinero_t *)arg;
-    while (pedidos_entregados<limite_pedidos)
+    while (pedidos_cocinados<limite_pedidos)
     {
         sem_wait(&sem_cocinero);
         pedidos_cocinados++;
@@ -165,7 +165,7 @@ void *encargado(void *arg)
         printf("Encargado %d cobrando pedido %d\n", encargado->numero, pedidos_entregados);
         sleep(encargado->tiempo_preparacion);
         printf("Encargado %d termino de cobrar pedido %d\n", encargado->numero, pedidos_entregados);
-        sem_post(&sem_telefono);
+        //sem_post(&sem_telefono);
         if (pedidos_entregados>=limite_pedidos)
         {
             exit(EXIT_SUCCESS);
@@ -177,9 +177,10 @@ void *encargado(void *arg)
 void *telefono(void *arg)
 {
     telefono_t *telefono = (telefono_t *)arg;
-    while (pedidos_entregados<limite_pedidos)
+    while (pedidos_atendidos<limite_pedidos)
     {
-        sem_wait(&sem_telefono);
+        //sem_wait(&sem_telefono);
+        sleep(random()%(telefono->tiempo_preparacion));
         pedidos_atendidos++;
         printf("Telefono %d recibiendo pedido %d\n", telefono->numero, pedidos_atendidos);
         sleep(telefono->tiempo_delivery);
