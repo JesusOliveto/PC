@@ -27,7 +27,7 @@ int pedidos_atendidos = 0;
 int pedidos_cocinados = 0;
 int pedidos_entregados = 0;
 
-int limite_pedidos = 3;
+int limite_pedidos = 10;
 
 //structs
 typedef struct pedido
@@ -101,6 +101,9 @@ int main(int argc, char *argv[])
     sem_init(&sem_encargado, 0, 0);
     sem_init(&sem_telefono, 0, 1);
 
+    printf("ingrese el limite de pedidos\n");
+    scanf("%d", &limite_pedidos);
+
     pthread_create(&cocinero1, NULL, cocinero, &cocinero_1);
     pthread_create(&cocinero2, NULL, cocinero, &cocinero_2);
     pthread_create(&cocinero3, NULL, cocinero, &cocinero_3);
@@ -166,6 +169,9 @@ void *encargado(void *arg)
         sleep(encargado->tiempo_preparacion);
         printf("Encargado %d termino de cobrar pedido %d\n", encargado->numero, pedidos_entregados);
         //sem_post(&sem_telefono);
+        //leer teclado 
+        int tecla;
+        scanf("%c", &tecla);
         if (pedidos_entregados>=limite_pedidos)
         {
             exit(EXIT_SUCCESS);
