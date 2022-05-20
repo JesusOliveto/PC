@@ -178,10 +178,6 @@ int main()
 		}
 	}
 
-	// game->cierre = 1;
-	// error = GuardarDato(game->m1, -1);
-	// error = GuardarDato(game->m1, -1);
-	// error = GuardarDato(game->m1, -2);
 
 	// TERMINA EL ENVIO DE DATOS
 
