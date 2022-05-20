@@ -21,7 +21,6 @@ void *cocinero(void *arg);
 void *delivery(void *arg);
 void *interfazJuego(void *arg);
 void *leerUsuario(void *arg);
-void *decrementarTiempo(void *arg);
 int menu();
 int crearJuego(void *arg);
 int borrarJuego(void *arg);
@@ -44,8 +43,6 @@ struct Juego
 	sem_t *llamada;
 	int telefono;
 
-	// Indica el tiempo de juego
-	int tiempoDeJuego;
 
 	// Indica la opcion ingresada por el usuario
 	int opcion;
@@ -81,7 +78,7 @@ int main()
 		return 0;
 	}
 
-	int error;
+	 int error;
 	int dinero = 0;
 	pthread_t *th;
 	th = (pthread_t *)(calloc(HILOS, sizeof(pthread_t)));
@@ -115,9 +112,8 @@ int main()
 	srand((unsigned)time(&t));
 	pthread_create(&th[6], NULL, interfazJuego, (void *)(game));
 	pthread_create(&th[7], NULL, leerUsuario, (void *)(game));
-	pthread_create(&th[8], NULL, decrementarTiempo, (void *)(game));
 	int pedidoAleatorio = -1;
-	while (game->tiempoDeJuego > 0)
+	while(game->cierre==0)
 	{
 
 		switch (game->opcion)
@@ -163,6 +159,7 @@ int main()
 					game->dineroTotal += 4;
 					break;
 				case 4:
+					//creo que este no se usa, pero porsi xd
 					game->dineroTotal += 5;
 					break;
 				}
@@ -181,10 +178,10 @@ int main()
 		}
 	}
 
-	game->cierre = 1;
-	error = GuardarDato(game->m1, -1);
-	error = GuardarDato(game->m1, -1);
-	error = GuardarDato(game->m1, -2);
+	// game->cierre = 1;
+	// error = GuardarDato(game->m1, -1);
+	// error = GuardarDato(game->m1, -1);
+	// error = GuardarDato(game->m1, -2);
 
 	// TERMINA EL ENVIO DE DATOS
 
@@ -217,7 +214,7 @@ void *telefono(void *arg)
 	time_t t2;
 	srand((unsigned)time(&t2));
 	int dormir = 1;
-	while (game->tiempoDeJuego > 0)
+	while(game->cierre==0)
 	{
 		sleep(dormir);
 		sem_post(game->llamada);
@@ -339,11 +336,11 @@ void *interfazJuego(void *arg)
 {
 	struct Juego *game = (struct Juego *)(arg);
 
-	while (game->tiempoDeJuego > 0)
+
+	while(game->cierre==0)
 	{
 		// fflush(stdin);
 
-		printf("Tiempo de Juego restante: %d\n\n", game->tiempoDeJuego);
 		sem_getvalue(game->llamada, &game->telefono);
 		if (game->telefono == 1)
 		{
@@ -400,12 +397,13 @@ void *interfazJuego(void *arg)
 
 		printf("1 - Contestar telefono\n");
 		printf("2 - Activar cocinero\n");
-		printf("3 - Cobrar pedido\n");
-		printf("4 - Actualizar pantalla\n");
+		printf("3 - Cobrar pedido/hacer que termine de entregar (known issue)\n");
+		printf("4 - Actualizar delivery en puerta (known issue)\n");
+		printf("5 - Cerrar el local\n");
 		printf("Ingrese la opcion: \n");
 		sleep(1);
 
-		if (game->tiempoDeJuego > 0)
+		if (game->cierre==0)
 		{
 			system("clear");
 		}
@@ -413,20 +411,11 @@ void *interfazJuego(void *arg)
 	pthread_exit(NULL);
 }
 
-void *decrementarTiempo(void *arg)
-{
-	struct Juego *game = (struct Juego *)(arg);
-	while (game->tiempoDeJuego > 0)
-	{
-		game->tiempoDeJuego--;
-		sleep(1);
-	}
-	pthread_exit(NULL);
-}
+
 
 void *leerUsuario(void *arg)
 {
-
+	int error;
 	struct Juego *game = (struct Juego *)(arg);
 	int opcion;
 	do
@@ -444,13 +433,18 @@ void *leerUsuario(void *arg)
 		case 3:
 			game->opcion = 3;
 			break;
-		default:
+		case 4:
 			printf("Pantalla actualizada\n");
+			break;
+		case 5:
+			game->cierre = 1;
+			error = GuardarDato(game->m1, -1);
+			error = GuardarDato(game->m1, -1);
+			error = GuardarDato(game->m1, -2);
 			break;
 		}
 		opcion = 0;
-	} while (game->tiempoDeJuego > 0);
-
+	} while (game->cierre == 0);
 	pthread_exit(NULL);
 }
 
@@ -461,7 +455,6 @@ int crearJuego(void *arg)
 	int error = 0;
 	game->m1 = NULL;
 	game->m2 = NULL;
-	game->tiempoDeJuego = 30;
 	game->opcion = 0;
 	game->id = 0;
 	game->dineroTotal = 0;
