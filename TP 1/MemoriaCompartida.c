@@ -23,8 +23,6 @@ struct Memoria *CrearMemoria(){
 		error = -1;
 	}
 	if (!error){
-		// printf("Semaforo creado!\n");
-
 		aux->memoria = shm_open("/memCompartida", O_CREAT | O_RDWR, 0660);
 		if (aux->memoria < 0){
 			perror("shm_open()");
@@ -32,7 +30,6 @@ struct Memoria *CrearMemoria(){
 		}
 	}
 	if (!error){
-		// printf("Descriptor de memoria creado!\n");
 		error = ftruncate(aux->memoria, sizeof(int));
 		if (error)
 			perror("ftruncate()");
@@ -43,8 +40,6 @@ struct Memoria *CrearMemoria(){
 int GuardarMemoria(struct Memoria *m, int dato){
 	int error=0;
 	int *datos = NULL;
-
-	//datos = mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED, m->memoria, 0);
 	datos = (int *)mmap(NULL, sizeof(int), PROT_READ | PROT_WRITE, MAP_SHARED, m->memoria, 0);
 	if (datos == MAP_FAILED){
 		perror("mmap()");

@@ -47,7 +47,6 @@ int GuardarDato(struct Monitor *m, int dato)
 	if (error)
 		perror("pthread_mutex_lock()");
 	else
-		//ver si usamos cont como manejador de cantidad de pedidos
 		while (m->cont > 9)
 			error = pthread_cond_wait(&m->cond, &m->escribir);
 
@@ -81,7 +80,6 @@ int LeerDato(struct Monitor *m, int *dato)
 		perror("pthread_mutex_lock()");
 	else
 		while (m->cont < 0)
-			//Si cont < 1 significa que no hay elementos a leer
 			error = pthread_cond_wait(&m->cond, &m->leer);
 
 	if (error)

@@ -411,6 +411,7 @@ void *interfazJuego(void *arg)
 
 void *leerUsuario(void *arg)
 {
+	//este int tira un warning diciendo que no se usa pero si se usa, compilador bigote 
 	int error;
 	struct Juego *game = (struct Juego *)(arg);
 	int opcion;
