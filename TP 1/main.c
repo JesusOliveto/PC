@@ -151,19 +151,19 @@ int main()
 				switch (dinero)
 				{
 				case 0:
-					game->dineroTotal += 50;
+					game->dineroTotal += 1;
 					break;
 				case 1:
-					game->dineroTotal += 100;
+					game->dineroTotal += 2;
 					break;
 				case 2:
-					game->dineroTotal += 200;
+					game->dineroTotal += 3;
 					break;
 				case 3:
-					game->dineroTotal += 100;
+					game->dineroTotal += 4;
 					break;
 				case 4:
-					game->dineroTotal += 400;
+					game->dineroTotal += 5;
 					break;
 				}
 				game->pedidosCobrados++;
