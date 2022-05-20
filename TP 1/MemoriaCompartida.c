@@ -50,6 +50,7 @@ int GuardarMemoria(struct Memoria *m, int dato){
 		perror("mmap()");
 		error = -1;
   	}
+
 	if (!error){
 		error = sem_wait(m->binario);
 		if (error){
@@ -57,7 +58,8 @@ int GuardarMemoria(struct Memoria *m, int dato){
 		}
 		if (!error){
 			*datos = dato;
-			usleep(random() % 5000000);
+			// sleep raro
+			//usleep(random() % 5000);
 			error = sem_post(m->binario);
 			if (error){
 				perror("sem_post()");
