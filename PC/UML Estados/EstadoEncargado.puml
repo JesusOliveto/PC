@@ -1,0 +1,14 @@
+@startuml EstadoEncargado
+(*)--> [crearJuego()] Preparado
+--> [inicializaThreads()] Trabajando
+
+If "tiempo > 0" then
+	--> [tomarLlamada()] Atendiendo
+	--> [darPedido()] Dando orden
+	--> [cobrar()] Cobrando
+	--> Trabajando
+else
+--> [mostrarDesempeno()] Cerrando
+Endif
+--> (*)
+@enduml
