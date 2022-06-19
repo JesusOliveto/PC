@@ -36,7 +36,6 @@ struct Juego{
 	sem_t *pedidosCocinados;
 	sem_t *pedidosEntregados;
 	sem_t *pedidosCobrados;
-	int dineroRecaudado;
 	int cierre;
 	int opcion;
 	
@@ -145,7 +144,6 @@ int main(int argc, char *argv[])
 					// String to long int
 					entregado = strtol(texto,&remaining,10);
 					sem_post(juego->pedidosCobrados);
-					juego->dineroRecaudado += entregado * 100;
 					sem_wait(juego->delivery);
 				}
 			}
@@ -187,7 +185,6 @@ int main(int argc, char *argv[])
 		fprintf(stdout,"Pedidos Cocinados: %d\n",pedidosCocinados);
 		fprintf(stdout,"Pedidos Entregados: %d\n",pedidosEntregados);
 		fprintf(stdout,"Pedidos Cobrados: %d\n",pedidosCobrados);
-		fprintf(stdout,"Dinero Recaudado: $%d\n",juego->dineroRecaudado);
 
 		free(th);
 		Borrar(juego);
@@ -489,7 +486,6 @@ int Inicializar(struct Juego *juego)
 	int error = 0;
 	juego->semtiempoDeJuego = sem_open("/semTiempo", O_CREAT, O_RDWR, tiempoJuego);
 	juego->llamadasPerdidas=0;
-	juego->dineroRecaudado=0;
 	juego->cierre = 0;
 	if (juego->semtiempoDeJuego == SEM_FAILED)
 	{
