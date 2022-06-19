@@ -65,25 +65,7 @@ void* timer(void *arg);
 void *interfazJuego(void *arg);
 void *leerUsuario(void * arg);
 
-// Funciones de texto especial
-// Hacen que los textos se vean de colores
-// diferentes
 
-void textoRojo() {
-  printf("\033[0;31m");
-}
-void textoAmarillo() {
-  printf("\033[0;33m");
-}
-void textoVerde() {
-  printf("\033[0;32m");
-}
-void textoDefecto() {
-  printf("\033[0m");
-}
-
-
-// 
 int main(int argc, char *argv[])
 {
 	system("clear");
@@ -98,32 +80,24 @@ int main(int argc, char *argv[])
 	pid1 = fork();
 	if (pid1 == 0)
 	{
-		//Proceso Telefono
-		//fprintf(stdout,"TELEFONO => El proceso Telefono fue creado!\n");
 		Telefono(juego);
 		return 0;
 	}
 	pid2 = fork();
 	if (pid2 == 0)
 	{
-		//Proceso Cocinero
-		//fprintf(stdout,"COCINERO => El proceso Cocinero fue creado!\n");
 		Cocinero(juego);
 		return 0;
 	}
 	pid3 = fork();
 	if (pid3 == 0)
 	{
-		//Proceso Delivery
-		//fprintf(stdout,"DELIVERY => El proceso Delivery fue creado!\n");
 		Delivery(juego);
 		return 0;
 	}
 
 	if (pid1 != 0 && pid2 != 0 && pid3 != 0)
 	{
-		//Proceso Encargado
-		//fprintf(stdout,"ENCARGADO => El proceso Encargado fue creado!\n");
 		int enviado=0,cantidad,estado = 0,estado2 = 0,entregado = 0,tiempoDeJuego;
 		char *remaining;
 		char texto[3];
@@ -156,24 +130,20 @@ int main(int argc, char *argv[])
 			}else if(juego->opcion == 2){
 				//Mandar a cocinar
 				if(cantidad > 0){
-					//fprintf(stdout,"ENCARGADO => Lei el numero %s\n",texto);
 					enviado = mq_send(juego->mensajes,texto,3,0);
 					cantidad = 0;
 					if(enviado == -1){
 						perror("Error en enviar mensaje");
 						error = enviado;
 					}else{
-						//fprintf(stdout,"ENCARGADO => Escribi en la queue\n");
 					}
 				}
 			}else if(juego->opcion == 3){
-				//Indiferentemente si lo lee o no, checkea si hay delivery a cobrar
 				sem_getvalue(juego->delivery,&estado2);
 				if(estado2 >= 1){
 					cantidad=read(juego->fdFifo,texto,3);
 					// String to long int
 					entregado = strtol(texto,&remaining,10);
-					//fprintf(stdout,"ENCARGADO => Hay un pedido a cobrar!\n");
 					sem_post(juego->pedidosCobrados);
 					juego->dineroRecaudado += entregado * 100;
 					sem_wait(juego->delivery);
@@ -202,14 +172,10 @@ int main(int argc, char *argv[])
 		enviado = mq_send(juego->mensajes,"-2",3,0);
 
 		juego->cierre = 1;
-		//fprintf(stdout,"ENCARGADO => El main process salio del while\n");
-		// Esperar todos mis hijos
 		while(wait(NULL) != -1 || errno != ECHILD){
-			//fprintf(stdout,"ENCARGADO => Un hijo mio termino su ejecucion\n");
 		}
-		//fprintf(stdout,"ENCARGADO => Todos mis hijos terminaron su ejecucion!\n");
-
-		fprintf(stdout,"ENCARGADO => ======= INFORMACION DE JUEGO ======= \n");
+		system("clear");
+		fprintf(stdout,"GAME OVER!\n");
 
 		int pedidosCobrados,pedidosCocinados,pedidosEntregados;
 
@@ -217,11 +183,11 @@ int main(int argc, char *argv[])
 		sem_getvalue(juego->pedidosCocinados,&pedidosCocinados);
 		sem_getvalue(juego->pedidosEntregados,&pedidosEntregados);
 
-		fprintf(stdout,"ENCARGADO => Llamadas Perdidas: %d\n",juego->llamadasPerdidas);
-		fprintf(stdout,"ENCARGADO => Pedidos Cocinados: %d\n",pedidosCocinados);
-		fprintf(stdout,"ENCARGADO => Pedidos Entregados: %d\n",pedidosEntregados);
-		fprintf(stdout,"ENCARGADO => Pedidos Cobrados: %d\n",pedidosCobrados);
-		fprintf(stdout,"ENCARGADO => Dinero Recaudado: $%d\n",juego->dineroRecaudado);
+		fprintf(stdout,"Llamadas Perdidas: %d\n",juego->llamadasPerdidas);
+		fprintf(stdout,"Pedidos Cocinados: %d\n",pedidosCocinados);
+		fprintf(stdout,"Pedidos Entregados: %d\n",pedidosEntregados);
+		fprintf(stdout,"Pedidos Cobrados: %d\n",pedidosCobrados);
+		fprintf(stdout,"Dinero Recaudado: $%d\n",juego->dineroRecaudado);
 
 		free(th);
 		Borrar(juego);
@@ -235,10 +201,8 @@ int main(int argc, char *argv[])
 int menu(){
 	int exit = 0;
 	char ch;
-	printf("======================================\n");
-	printf("=            1 - Jugar               =\n");
-	printf("=            2 - Salir               =\n");
-	printf("======================================\n");
+	printf("1 - Jugar\n");
+	printf("2 - Salir\n");
 	
 	do{
 		printf("Ingrese la opcion: ");
@@ -247,12 +211,10 @@ int menu(){
 		switch(ch){
 			case 49:
 				system("clear");
-				printf("A jugar!!\n");
+				printf("INICIANDO...\n");
 				return 1;
 				break;
 			case 50:
-				system("clear");
-				printf("Adios!\n");
 				return 2;
 				break;
 			default:
@@ -273,40 +235,30 @@ void *interfazJuego(void *arg){
 
 	sem_getvalue(juego->semtiempoDeJuego,&tiempoDeJuego);
 	while(tiempoDeJuego > 0){
-		if(tiempoDeJuego >= 20) textoVerde();
-		else if (tiempoDeJuego >= 10 && tiempoDeJuego < 20) textoAmarillo();
-		else textoRojo();
 		
 		printf("Tiempo de Juego restante: %d\n\n",tiempoDeJuego);
-		textoDefecto();
 		sem_getvalue(juego->telefono,&estadoTelefono);
 		if(estadoTelefono % 2 == 1){
-			textoAmarillo();
-			printf("Telefono sonando...\n");
+			printf("Llamada entrante\n");
 		}else{
-			printf("Telefono inactivo\n");
+			printf("Telefono apagado\n");
 		}
 
 		sem_getvalue(juego->delivery,&estadoDelivery);
 		if(estadoDelivery >= 1){
-			textoVerde();
-			printf("Hay un delivery para cobrar...\n");
+			printf("Delivery en puerta\n");
 		}else{
-			textoDefecto();
-			printf("No hay dinero a cobrar\n");
+			printf("nada que cobrar\n");
 		}
 
 		if(tiempoDeJuego < 5){
-			textoRojo();
-			printf("\nEstamos por cerrar el local!\n");
+			printf("\nTERMINANDO...\n");
 		}else{
-			textoVerde();
-			printf("\nLocal abierto\n\n");
+			printf("\nDelivery activo\n\n");
 		}
-		textoDefecto();
 
 		printf("1 - Contestar telefono\n");
-		printf("2 - Dar pedido a cocinero\n");
+		printf("2 - Activar cocinero\n");
 		printf("3 - Cobrar delivery\n");
 		printf("Ingrese la opcion: \n");
 		sleep(1);
@@ -363,7 +315,6 @@ void *timer(void *arg){
 		sem_getvalue(juego->semtiempoDeJuego,&tiempo);
 		sleep(1);
 	}
-	//fprintf(stdout,"TIMER => Termine\n");
 	pthread_exit(NULL);
 }
 
@@ -388,7 +339,6 @@ int Telefono(struct Juego *juego){
 		
 		write(juego->fdTelefono[1],texto,strlen(texto)+1);
 		sem_post(juego->telefono);
-		//fprintf(stdout,"TELEFONO => Escribi %s\n",texto);
 		
 		sleep(3);
 		//Implementar semaforo telefono
@@ -403,11 +353,9 @@ int Telefono(struct Juego *juego){
 			//Enviar senal ipc para cerrar todo
 			sem_post(juego->telefono);
 			write(juego->fdTelefono[1],"-1",3);
-			//fprintf(stdout,"TELEFONO => VAMOS A CERRAR!\n");
 			break;
 		}
 	}
-	//fprintf(stdout,"TELEFONO => Termine\n");
 	return error;
 }
 
@@ -428,19 +376,13 @@ int Cocinero(struct Juego *juego){
 			perror("Error en recibir mensaje");
 		}else{
 			if(strcmp(mensaje,"-2") == 0){
-				// dejar de cocinar, avisar delivery y cerrar
-				//fprintf(stdout,"Proceso Cocinero => Soy el encargado y cerre\n");
 				mq_send(juego->mensajes2,"-1",3,0);
 				mq_send(juego->mensajes2,"-1",3,0);
 				break;
 			}else if(strcmp(mensaje,"-1") == 0){
-				//salir
-				//fprintf(stdout,"Proceso Cocinero => Cerre\n");
 				break;
 			}else{
-				//fprintf(stdout,"COCINERO => Numero recibido es: %s\n",mensaje);
 				sleep(2);
-				//fprintf(stdout,"COCINERO => Termine de cocinar\n");
 				sem_post(juego->pedidosCocinados);
 				mq_send(juego->mensajes2,mensaje,3,0);
 			}
@@ -450,7 +392,6 @@ int Cocinero(struct Juego *juego){
 	{
 		pthread_join(th2[i], NULL);
 	}
-	//fprintf(stdout,"COCINERO => Termine\n");
 	return 0;
 }
 
@@ -464,20 +405,14 @@ void *HiloCocinero(void *arg){
 			perror("Error en recibir mensaje");
 		}else{
 			if(strcmp(mensaje,"-2") == 0){
-				// dejar de cocinar, avisar delivery y cerrar
-				//fprintf(stdout,"Hilo Cocinero => Soy el encargado y cerre\n");
 				mq_send(juego->mensajes2,"-1",3,0);
 				mq_send(juego->mensajes2,"-1",3,0);
 				break;
 			}
 			if(strcmp(mensaje,"-1") == 0){
-				//salir
-				//fprintf(stdout,"Hilo Cocinero => Cerre\n");
 				break;
 			}else{
-				//fprintf(stdout,"COCINERO => Numero recibido es: %s\n",mensaje);
 				sleep(2);
-				//fprintf(stdout,"COCINERO => Termine de cocinar\n");
 				sem_post(juego->pedidosCocinados);
 				mq_send(juego->mensajes2,mensaje,3,0);
 			}
@@ -502,13 +437,9 @@ int Delivery(struct Juego *juego){
 			perror("Error en recibir mensaje");
 		}else{
 			if(strcmp(mensaje,"-1") == 0){
-				//salir
-				//fprintf(stdout,"Proceso Delivery => Cerre\n");
 				break;
 			}else{
-				//fprintf(stdout,"DELIVERY => Numero recibido es: %s\n",mensaje);
 				sleep(2);
-				//fprintf(stdout,"DELIVERY => Entrege\n");
 				if(juego->fdFifo < 0){
 					perror("While opening Fifo");
 				}else{
@@ -521,7 +452,6 @@ int Delivery(struct Juego *juego){
 	}
 	close(juego->fdFifo);
 	pthread_join(th3[0], NULL);
-	//fprintf(stdout,"DELIVERY => Termine\n");
 	return 0;
 }
 
@@ -536,13 +466,9 @@ void *HiloDelivery(void *arg){
 			perror("Error en recibir mensaje");
 		}else{
 			if(strcmp(mensaje,"-1") == 0){
-				//salir
-				//fprintf(stdout,"Hilo Delivery => Cerre\n");
 				break;
 			}else{
-				//fprintf(stdout,"DELIVERY => Numero recibido es: %s\n",mensaje);
 				sleep(2);
-				//fprintf(stdout,"DELIVERY => Entrege\n");
 				if(juego->fdFifo < 0){
 					perror("While opening Fifo");
 				}else{
@@ -613,7 +539,6 @@ int Inicializar(struct Juego *juego)
       perror("mkfifo");
 	}else{
 		error=0;
-		//printf("Fifo creada!\n");
 	}
 	return error;
 }
@@ -670,7 +595,6 @@ int Borrar(struct Juego *juego)
 
 
 	error = unlink("./fifoDelivery");
-	//fprintf(stdout,"FIFO borrada!\n");
 
 	return error;
 }
