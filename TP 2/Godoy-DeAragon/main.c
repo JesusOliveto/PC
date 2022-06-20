@@ -16,7 +16,7 @@
 
 
 #define TAMMSG 8192
-#define tiempoJuego 20
+#define tiempoJuego 10
 
 int x = 0;
 
@@ -271,23 +271,33 @@ void *interfazJuego(void *arg)
 	sem_getvalue(game->semtiempoDeJuego,&tiempoDeJuego);
 	while(tiempoDeJuego > 0){
 		
+		printf("\033[0;31m");
 		printf("Tiempo de Juego restante: %d\n\n",tiempoDeJuego);
+		printf("\033[0m");
 		sem_getvalue(game->telefono,&estadoTelefono);
 		if(estadoTelefono % 2 == 1){
+			printf("\033[0;33m");
 			printf("Llamada entrante\n");
+			printf("\033[0m");
 		}else{
+			printf("\033[0m");
 			printf("Telefono apagado\n");
 		}
 
 		sem_getvalue(game->delivery,&estadoDelivery);
 		if(estadoDelivery >= 1){
+			printf("\033[0;33m");
 			printf("Delivery en puerta\n");
+			printf("\033[0m");
 		}else{
+			printf("\033[0m");
 			printf("nada que cobrar\n");
 		}
 
 		if(tiempoDeJuego < 5){
+			printf("\033[0;31m");
 			printf("\nTERMINANDO...\n");
+			printf("\033[0m");
 		}else{
 			printf("\nDelivery activo\n\n");
 		}
@@ -557,7 +567,9 @@ int main(int argc, char *argv[])
 		while(wait(NULL) != -1 || errno != ECHILD){
 		}
 		system("clear");
+		printf("\033[0;33m");
 		fprintf(stdout,"GAME OVER!\n");
+		printf("\033[0m");
 
 		int pedidosCobrados,pedidosCocinados,pedidosEntregados;
 
