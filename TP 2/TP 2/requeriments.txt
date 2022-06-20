@@ -1,6 +1,0 @@
-Grupo: Bautista Madruga y Tomas Alvarez
-
-Compilar con:
-gcc -pthread -lrt main.c -o juegoPandemia
-
-Los parametros -Wall y -pedantic son opcionales, solo salen warnings inevitables
